@@ -49,7 +49,7 @@
             </div>
 
             <div id="fileList">
-                <p class="text-center text-muted small mt-4">버튼을 누르면 SOP 파일 등을 가져옵니다.</p>
+                <p class="text-center text-muted small mt-4">버튼을 누르면 전체 자료를 가져옵니다.</p>
             </div>
         </div>
 
@@ -89,8 +89,8 @@
 </div>
 
 <script>
-    // 셰프님의 구글 드라이브 연동 주소 (건드리지 마세요)
-    const DRIVE_API = "https://script.google.com/macros/s/AKfycbwy2GyIvxVQsp3hpDaf3_N4OpksYot1G1owSYwTLRC_dEVJYdlTre4fpvXJjo2dwVAy/exec";
+    // [수정 완료] 뒤에 시간을 붙여서 강제로 새 데이터를 가져옵니다.
+    const DRIVE_API = "https://script.google.com/macros/s/AKfycbwy2GyIvxVQsp3hpDaf3_N4OpksYot1G1owSYwTLRC_dEVJYdlTre4fpvXJjo2dwVAy/exec" + "?t=" + new Date().getTime();
 
     let db = JSON.parse(localStorage.getItem('chefDB')) || [];
     let costItems = [];
@@ -112,7 +112,6 @@
                 
                 let html = '';
                 data.forEach(file => {
-                    // 엑셀 파일인 경우 'DB등록' 버튼 표시
                     let isExcel = file.name.includes('.xls') || file.name.includes('.xlsx');
                     let btnAction = isExcel 
                         ? `<button class="btn btn-sm btn-outline-primary" onclick="window.open('${file.url}')">다운로드</button>` 
