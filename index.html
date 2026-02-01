@@ -3,19 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MISOYON MMS (Chef_dskim Ver.)</title>
+    <title>MISOYON MMS (Chef_dskim)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        body { background-color: #f0f2f5; font-family: 'Pretendard', 'Noto Sans KR', sans-serif; }
+        body { background-color: #f0f2f5; font-family: 'Pretendard', sans-serif; }
         .main-container { max-width: 600px; margin: 20px auto; background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         .nav-pills .nav-link.active { background-color: #333; color: #fff; font-weight: bold; }
         .nav-pills .nav-link { color: #555; }
-        .total-box { background: #333; color: white; padding: 15px; border-radius: 10px; text-align: right; margin-top: 15px; }
-        .btn-add { background-color: #0d6efd; color: white; width: 100%; font-weight: bold; }
-        .table-custom th { background-color: #f8f9fa; font-size: 0.9rem; }
-        .table-custom td { vertical-align: middle; }
-        .delete-btn { color: #dc3545; cursor: pointer; }
+        .btn-drive { background-color: #198754; color: white; width: 100%; font-weight: bold; }
+        .file-card { border: 1px solid #eee; padding: 10px; border-radius: 8px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+        .file-card:hover { background-color: #f8f9fa; }
+        .file-icon { font-size: 1.5rem; margin-right: 10px; color: #217346; }
+        .loading-spinner { text-align: center; padding: 20px; display: none; }
     </style>
 </head>
 <body>
@@ -23,174 +24,180 @@
 <div class="main-container">
     <div class="text-center mb-4">
         <h3 style="font-weight: 800;"><i class="fas fa-utensils"></i> CHEF DSKIM MMS</h3>
-        <p class="text-muted small">통합 주방 관리 시스템</p>
+        <p class="text-muted small">통합 주방 관리 시스템 (Drive 연동됨)</p>
     </div>
 
     <ul class="nav nav-pills nav-fill mb-4" id="pills-tab" role="tablist">
-        <li class="nav-item">
-            <button class="nav-link active" id="pills-cost-tab" data-bs-toggle="tab" data-bs-target="#pills-cost" type="button"><i class="fas fa-calculator"></i> 원가계산</button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link" id="pills-inv-tab" data-bs-toggle="tab" data-bs-target="#pills-inv" type="button"><i class="fas fa-boxes"></i> 재고장부</button>
-        </li>
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-drive">☁️ 드라이브</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-cost">💰 원가계산</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-inv">📦 재고관리</button></li>
     </ul>
 
-    <div class="tab-content" id="pills-tabContent">
+    <div class="tab-content">
         
-        <div class="tab-pane fade show active" id="pills-cost">
-            <div class="mb-3">
-                <label class="form-label fw-bold">메뉴명</label>
-                <input type="text" class="form-control" id="menuName" placeholder="예: 한우 갈비탕">
+        <div class="tab-pane fade show active" id="tab-drive">
+            <div class="alert alert-success small">
+                <i class="fas fa-check-circle"></i> 셰프님의 구글 드라이브와 연결되었습니다.
             </div>
+            <button class="btn btn-drive mb-3" onclick="loadDriveFiles()">
+                <i class="fas fa-sync-alt"></i> 드라이브 자료 불러오기
+            </button>
             
-            <div class="row g-2 mb-3">
-                <div class="col-6">
-                    <label class="form-label fw-bold">판매가</label>
-                    <input type="number" class="form-control" id="salePrice" placeholder="0" onkeyup="calcTotal()">
-                </div>
-                <div class="col-6 text-end d-flex align-items-end justify-content-end">
-                    <span class="badge bg-primary fs-6">예상마진: <span id="marginRate">0</span>%</span>
-                </div>
+            <div id="loading" class="loading-spinner">
+                <div class="spinner-border text-success" role="status"></div>
+                <p class="mt-2 small">구글 드라이브를 뒤지는 중...</p>
             </div>
 
-            <hr>
-            
-            <h6 class="fw-bold"><i class="fas fa-plus-circle"></i> 재료 등록</h6>
-            <div class="input-group mb-2">
-                <input type="text" class="form-control" id="ingName" placeholder="품명">
-                <input type="number" class="form-control" id="ingCost" placeholder="원가(원)">
-            </div>
-            <button class="btn btn-add py-2 mb-3" onclick="addIngredient()">재료 추가하기</button>
-
-            <table class="table table-custom">
-                <thead>
-                    <tr>
-                        <th style="width: 60%;">품명</th>
-                        <th class="text-end">금액</th>
-                        <th style="width: 10%;"></th>
-                    </tr>
-                </thead>
-                <tbody id="costTableBody">
-                    </tbody>
-            </table>
-
-            <div class="total-box">
-                <div class="fs-5">총 원가: <span id="totalCost" class="fw-bold text-warning">0</span> 원</div>
+            <div id="fileList">
+                <p class="text-center text-muted small mt-4">버튼을 누르면 SOP 파일 등을 가져옵니다.</p>
             </div>
         </div>
 
-        <div class="tab-pane fade" id="pills-inv">
+        <div class="tab-pane fade" id="tab-cost">
+            <div class="input-group mb-2">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" class="form-control" id="ingSearch" placeholder="재료 검색..." onkeyup="searchIng()">
+            </div>
+            <div id="searchResults" class="list-group mb-3" style="display:none;"></div>
+            
+            <div class="card p-3 bg-light mb-3">
+                <h6 class="fw-bold">메뉴: <input type="text" class="d-inline-block form-control form-control-sm w-50" placeholder="메뉴명"></h6>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span>판매가: <input type="number" id="salePrice" class="form-control form-control-sm d-inline-block w-25" onkeyup="calcTotal()"></span>
+                    <span class="badge bg-dark">마진율: <span id="marginRate">0</span>%</span>
+                </div>
+            </div>
+
+            <ul class="list-group mb-3" id="costList"></ul>
+            <div class="text-end fw-bold fs-5">총 원가: <span id="totalCost" class="text-danger">0</span>원</div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-inv">
             <div class="input-group mb-3">
                 <input type="date" class="form-control" id="invDate">
-                <button class="btn btn-outline-secondary" onclick="setToday()">오늘</button>
-            </div>
-            <div class="input-group mb-3">
-                <input type="text" class="form-control" id="invItem" placeholder="품목명 (예: 양파)">
+                <input type="text" class="form-control" id="invItem" placeholder="품목">
                 <input type="number" class="form-control" id="invQty" placeholder="수량">
-                <button class="btn btn-dark" onclick="addInventory()">입고</button>
+                <button class="btn btn-dark" onclick="addInv()">입고</button>
             </div>
-
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <h6 class="fw-bold m-0">📋 입고 내역</h6>
-                <button class="btn btn-sm btn-outline-danger" onclick="clearInventory()">초기화</button>
-            </div>
-
-            <table class="table table-sm table-striped table-bordered">
-                <thead class="table-light">
-                    <tr>
-                        <th>날짜</th>
-                        <th>품목</th>
-                        <th>수량</th>
-                    </tr>
-                </thead>
-                <tbody id="invTableBody">
-                    </tbody>
+            <table class="table table-sm table-striped">
+                <thead><tr><th>날짜</th><th>품목</th><th>수량</th></tr></thead>
+                <tbody id="invBody"></tbody>
             </table>
         </div>
 
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // [시스템] 초기화 및 데이터 로드
-    let costData = [];
-    let invData = JSON.parse(localStorage.getItem('mms_inventory')) || [];
-    
-    setToday();
-    renderInv();
+    // 셰프님의 구글 드라이브 연동 주소 (건드리지 마세요)
+    const DRIVE_API = "https://script.google.com/macros/s/AKfycbwy2GyIvxVQsp3hpDaf3_N4OpksYot1G1owSYwTLRC_dEVJYdlTre4fpvXJjo2dwVAy/exec";
 
-    // ------------------------------------
-    // 1. 원가 계산 로직
-    // ------------------------------------
-    function addIngredient() {
-        let name = document.getElementById('ingName').value;
-        let cost = Number(document.getElementById('ingCost').value);
+    let db = JSON.parse(localStorage.getItem('chefDB')) || [];
+    let costItems = [];
+    let invItems = JSON.parse(localStorage.getItem('chefInv')) || [];
 
-        if (!name || cost <= 0) { alert("품명과 정확한 원가를 입력하세요."); return; }
+    // [기능 1] 구글 드라이브 파일 불러오기
+    function loadDriveFiles() {
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('fileList').innerHTML = '';
 
-        costData.push({ name: name, cost: cost });
-        renderCost();
-        
-        // 입력창 비우기
-        document.getElementById('ingName').value = '';
-        document.getElementById('ingCost').value = '';
-        document.getElementById('ingName').focus();
+        fetch(DRIVE_API)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('loading').style.display = 'none';
+                if(data.length === 0) {
+                    document.getElementById('fileList').innerHTML = '<p class="text-center">발견된 엑셀/PDF 파일이 없습니다.</p>';
+                    return;
+                }
+                
+                let html = '';
+                data.forEach(file => {
+                    // 엑셀 파일인 경우 'DB등록' 버튼 표시
+                    let isExcel = file.name.includes('.xls') || file.name.includes('.xlsx');
+                    let btnAction = isExcel 
+                        ? `<button class="btn btn-sm btn-outline-primary" onclick="window.open('${file.url}')">다운로드</button>` 
+                        : `<button class="btn btn-sm btn-outline-secondary" onclick="window.open('${file.url}')">보기</button>`;
+                    
+                    html += `
+                    <div class="file-card">
+                        <div>
+                            <i class="fas ${isExcel ? 'fa-file-excel' : 'fa-file-pdf'} file-icon"></i>
+                            <span class="fw-bold small">${file.name}</span>
+                        </div>
+                        <div>${btnAction}</div>
+                    </div>`;
+                });
+                document.getElementById('fileList').innerHTML = html;
+            })
+            .catch(err => {
+                document.getElementById('loading').style.display = 'none';
+                alert("불러오기 실패! 잠시 후 다시 시도해주세요.");
+                console.error(err);
+            });
     }
 
-    function removeCost(index) {
-        costData.splice(index, 1);
+    // [기능 2] 원가 계산 및 검색
+    function searchIng() {
+        let keyword = document.getElementById('ingSearch').value.toLowerCase();
+        let box = document.getElementById('searchResults');
+        box.innerHTML = '';
+        if(keyword.length < 1) { box.style.display = 'none'; return; }
+
+        let matches = db.filter(i => i.name.toLowerCase().includes(keyword)).slice(0,5);
+        if(matches.length > 0) {
+            box.style.display = 'block';
+            matches.forEach(m => {
+                box.innerHTML += `<button class="list-group-item list-group-item-action" onclick="addCostItem('${m.name}', ${m.price})">${m.name} (${m.price}원)</button>`;
+            });
+        } else { box.style.display = 'none'; }
+    }
+
+    function addCostItem(name, price) {
+        costItems.push({name, price});
+        document.getElementById('ingSearch').value = '';
+        document.getElementById('searchResults').style.display = 'none';
         renderCost();
     }
 
     function renderCost() {
-        let tbody = document.getElementById('costTableBody');
-        tbody.innerHTML = '';
+        let list = document.getElementById('costList');
+        list.innerHTML = '';
         let total = 0;
-
-        costData.forEach((item, index) => {
-            total += item.cost;
-            let row = `<tr>
-                <td>${item.name}</td>
-                <td class="text-end">${item.cost.toLocaleString()}</td>
-                <td class="text-center"><i class="fas fa-trash-alt delete-btn" onclick="removeCost(${index})"></i></td>
-            </tr>`;
-            tbody.innerHTML += row;
+        costItems.forEach((item, idx) => {
+            total += item.price;
+            list.innerHTML += `<li class="list-group-item d-flex justify-content-between"><span>${item.name}</span><span>${item.price}원 <i class="fas fa-times text-danger ms-2" onclick="delCost(${idx})"></i></span></li>`;
         });
-
         document.getElementById('totalCost').innerText = total.toLocaleString();
         calcTotal(total);
     }
+    
+    function delCost(idx) { costItems.splice(idx, 1); renderCost(); }
 
-    function calcTotal(currentTotal) {
-        if (!currentTotal) currentTotal = Number(document.getElementById('totalCost').innerText.replace(/,/g, ''));
-        let salePrice = Number(document.getElementById('salePrice').value);
-        
-        if (salePrice > 0) {
-            let margin = ((salePrice - currentTotal) / salePrice) * 100;
-            document.getElementById('marginRate').innerText = margin.toFixed(1);
-        } else {
-            document.getElementById('marginRate').innerText = '0';
+    function calcTotal(total) {
+        if(!total) total = Number(document.getElementById('totalCost').innerText.replace(/,/g,''));
+        let price = Number(document.getElementById('salePrice').value);
+        if(price > 0) document.getElementById('marginRate').innerText = ((price - total)/price*100).toFixed(1);
+    }
+
+    // [기능 3] 재고 관리
+    document.getElementById('invDate').valueAsDate = new Date();
+    renderInv();
+    function addInv() {
+        let d = document.getElementById('invDate').value;
+        let i = document.getElementById('invItem').value;
+        let q = document.getElementById('invQty').value;
+        if(i && q) {
+            invItems.unshift({d, i, q});
+            localStorage.setItem('chefInv', JSON.stringify(invItems));
+            renderInv();
+            document.getElementById('invItem').value = ''; document.getElementById('invQty').value = '';
         }
     }
-
-    // ------------------------------------
-    // 2. 재고 장부 로직
-    // ------------------------------------
-    function setToday() {
-        document.getElementById('invDate').valueAsDate = new Date();
+    function renderInv() {
+        let tbody = document.getElementById('invBody');
+        tbody.innerHTML = '';
+        invItems.forEach(r => tbody.innerHTML += `<tr><td>${r.d}</td><td>${r.i}</td><td>${r.q}</td></tr>`);
     }
-
-    function addInventory() {
-        let date = document.getElementById('invDate').value;
-        let item = document.getElementById('invItem').value;
-        let qty = document.getElementById('invQty').value;
-
-        if (!item || !qty) return;
-
-        invData.unshift({ date: date, item: item, qty: qty }); // 최신순 저장
-        localStorage.setItem('mms_inventory', JSON.stringify(invData));
-        renderInv();
-        
-        document.getElementById('invItem').value = '';
-        document
+</script>
+</body>
+</html>
